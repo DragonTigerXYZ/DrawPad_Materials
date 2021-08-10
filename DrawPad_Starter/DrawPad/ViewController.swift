@@ -30,11 +30,34 @@ import UIKit
 
 class ViewController: UIViewController {
   
+  @IBOutlet weak var mainImageView: UIImageView!
+  @IBOutlet weak var tempImageView: UIImageView!
+  
   var lastPoint = CGPoint.zero
   var color = UIColor.black
   var brushWidth: CGFloat = 10.0
   var opacity: CGFloat = 1.0
   var swiped = false
+  
+  override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+    guard
+      let navController = segue.destination as? UINavigationController,
+      let settingsController = navController.topViewController as? SettingsViewController
+    else {
+        return
+    }
+    settingsController.delegate = self
+    settingsController.brush = brushWidth
+    settingsController.opacity = opacity
+    
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    color.getRed(&red, green: &green, blue: &blue, alpha: nil)
+    settingsController.red = red
+    settingsController.green = green
+    settingsController.blue = blue
+  }
   
   override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
     guard let touch = touches.first else {
@@ -93,19 +116,48 @@ class ViewController: UIViewController {
     
   }
   
-  
-  @IBOutlet weak var mainImageView: UIImageView!
-  @IBOutlet weak var tempImageView: UIImageView!
-  
   // MARK: - Actions
   
   @IBAction func resetPressed(_ sender: Any) {
+    
+    mainImageView.image = nil
+    
   }
   
   @IBAction func sharePressed(_ sender: Any) {
+    guard let image = mainImageView.image else {
+      return
+    }
+    let activity = UIActivityViewController(activityItems: [image],
+                                            applicationActivities: nil)
+    present(activity, animated: true)
+    
   }
   
   @IBAction func pencilPressed(_ sender: UIButton) {
+    
+    guard let pencil = Pencil(tag: sender.tag) else {
+      return
+    }
+
+    color = pencil.color
+
+    if pencil == .eraser {
+      opacity = 1.0
+    }
+    
   }
 }
 
+
+extension ViewController: SettingsViewControllerDelegate {
+  func settingsViewControllerFinished(_ settingsViewController: SettingsViewController) {
+    brushWidth = settingsViewController.brush
+    opacity = settingsViewController.opacity
+    color = UIColor(red: settingsViewController.red,
+                    green: settingsViewController.green,
+                    blue: settingsViewController.blue,
+                    alpha: opacity)
+    dismiss(animated: true)
+  }
+}
